@@ -1,4 +1,4 @@
-# linkbio
+# LINKS by Basilpot
 
 Small link-in-bio app: WorkOS AuthKit, profiles, 15 free links, analytics, and one Paddle Pro tier.
 
