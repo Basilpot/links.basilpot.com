@@ -1,16 +1,24 @@
 # linkbio
 
-Small link-in-bio app: profiles, 15 free links, analytics, and one Paddle Pro tier.
+Small link-in-bio app: WorkOS AuthKit, profiles, 15 free links, analytics, and one Paddle Pro tier.
 
 ## Run locally
 
 1. `pnpm install`
-2. Copy `.env.example` to `.env`, set Postgres, Auth, analytics, and Paddle values.
+2. Copy `.env.example` to `.env`, set Postgres, WorkOS, analytics, and Paddle values.
 3. `pnpm db:migrate` (or `pnpm db:dev` while changing schema).
 4. `pnpm dev`
-5. In another terminal, run `pnpm smoke` for a disposable end-to-end check against local server and configured database.
+5. In another terminal, run `pnpm smoke` for a disposable public-page and analytics check. Complete hosted sign-in manually in browser.
 
-Use Neon pooled `DATABASE_URL` for app queries and direct `DATABASE_URL_UNPOOLED` for Prisma migrations. Generate separate random values for `AUTH_SECRET` and `ANALYTICS_SECRET` (`openssl rand -hex 32`).
+Use Neon pooled `DATABASE_URL` for app queries and direct `DATABASE_URL_UNPOOLED` for Prisma migrations. Generate separate random values for `APP_SIGNING_SECRET`, `ANALYTICS_SECRET`, and `WORKOS_COOKIE_PASSWORD` (`openssl rand -hex 32`).
+
+## WorkOS setup
+
+Set `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, `WORKOS_COOKIE_PASSWORD`, and `NEXT_PUBLIC_WORKOS_REDIRECT_URI`. Register `/auth/callback` as WorkOS redirect URI, `/login` as initiate login URI, and app root as default sign-out URI. WorkOS hosts email/password and social sign-in. Enable desired social providers (for example Google and GitHub) under **Authentication** in WorkOS Dashboard; their OAuth credentials and provider activation live there, outside this app. Public profiles remain free of AuthKit client JavaScript.
+
+An existing local profile is linked on first WorkOS sign-in only when WorkOS verifies matching email. Its old password hash is cleared at that point. Legacy hashes remain unused until those users migrate.
+
+Codex WorkOS MCP is registered globally with `codex mcp add workos --url https://mcp.workos.com/mcp`; run `codex mcp login workos` if OAuth expires, then restart Codex to expose its tools.
 
 ## Paddle setup
 

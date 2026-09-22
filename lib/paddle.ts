@@ -8,8 +8,8 @@ export function paddle() {
   return new Paddle(key, { environment: process.env.NEXT_PUBLIC_PADDLE_ENV === "production" ? Environment.production : Environment.sandbox });
 }
 export function checkoutSignature(profileId: string) {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) throw new Error("AUTH_SECRET is required");
+  const secret = process.env.APP_SIGNING_SECRET;
+  if (!secret) throw new Error("APP_SIGNING_SECRET is required");
   return createHmac("sha256", secret).update(profileId).digest("hex");
 }
 export function verifiedProfileId(data: Record<string, unknown> | null) {

@@ -1,4 +1,0 @@
-import Link from "next/link";
-import { ActionForm } from "@/components/action-form";
-import { login } from "@/app/actions";
-export default function Login() { return <main className="mx-auto max-w-md px-6 py-20"><Link href="/" className="font-bold">linkbio</Link><h1 className="mt-12 mb-6 text-3xl font-semibold">Log in</h1><ActionForm action={login} submit="Log in"><div><label className="label" htmlFor="email">Email</label><input className="input" id="email" name="email" type="email" required autoComplete="email" /></div><div><label className="label" htmlFor="password">Password</label><input className="input" id="password" name="password" type="password" required autoComplete="current-password" /></div></ActionForm><p className="mt-6 text-sm">New here? <Link className="underline" href="/signup">Create account</Link></p></main>; }

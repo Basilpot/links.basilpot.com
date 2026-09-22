@@ -1,4 +1,0 @@
-import Link from "next/link";
-import { ActionForm } from "@/components/action-form";
-import { signup } from "@/app/actions";
-export default function Signup() { return <main className="mx-auto max-w-md px-6 py-20"><Link href="/" className="font-bold">linkbio</Link><h1 className="mt-12 mb-6 text-3xl font-semibold">Create your page</h1><ActionForm action={signup} submit="Create account"><div><label className="label" htmlFor="email">Email</label><input className="input" id="email" name="email" type="email" required autoComplete="email" /></div><div><label className="label" htmlFor="password">Password</label><input className="input" id="password" name="password" type="password" required minLength={10} autoComplete="new-password" /><p className="mt-1 text-xs text-muted-foreground">At least 10 characters.</p></div></ActionForm><p className="mt-6 text-sm">Already have account? <Link className="underline" href="/login">Log in</Link></p></main>; }

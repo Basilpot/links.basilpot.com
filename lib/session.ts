@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { withAuth } from "@workos-inc/authkit-nextjs";
 import { db } from "@/lib/db";
 
 export async function currentUser() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-  return session.user.id;
+  const { user } = await withAuth({ ensureSignedIn: true });
+  const local = await db.user.findUnique({ where: { workosId: user.id }, select: { id: true } });
+  if (!local) throw new Error("WorkOS account was not provisioned");
+  return local.id;
 }
 export async function currentProfile() {
   const userId = await currentUser();

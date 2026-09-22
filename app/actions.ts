@@ -2,37 +2,15 @@
 
 import { Prisma } from "@/generated/prisma/client";
 import { resolveTxt } from "node:dns/promises";
-import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { isPro, socialPlatforms, socialUrl, themes, validUrl, validUsername } from "@/lib/core";
 import { domainToken } from "@/lib/domain";
-import { hashPassword } from "@/lib/password";
 import { currentProfile, currentUser } from "@/lib/session";
-import { signIn, signOut } from "@/auth";
+import { signOut } from "@workos-inc/authkit-nextjs";
 
-export async function signup(_: string, form: FormData): Promise<string> {
-  const email = String(form.get("email") ?? "").trim().toLowerCase();
-  const password = String(form.get("password") ?? "");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 10) return "Enter valid email and password of at least 10 characters.";
-  try { await db.user.create({ data: { email, passwordHash: await hashPassword(password) } }); }
-  catch (error) { if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return "Email already in use."; throw error; }
-  await signIn("credentials", { email, password, redirectTo: "/claim" });
-  return "";
-}
-
-export async function login(_: string, form: FormData): Promise<string> {
-  try {
-    await signIn("credentials", { email: form.get("email"), password: form.get("password"), redirectTo: "/dashboard" });
-  } catch (error) {
-    if (error instanceof AuthError) return "Invalid email or password.";
-    throw error;
-  }
-  return "";
-}
-
-export async function logout() { await signOut({ redirectTo: "/" }); }
+export async function logout() { await signOut(); }
 
 export async function claim(_: string, form: FormData): Promise<string> {
   const userId = await currentUser();
