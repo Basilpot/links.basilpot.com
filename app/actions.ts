@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { isPro, socialPlatforms, socialUrl, themes, validUrl, validUsername } from "@/lib/core";
 import { domainToken } from "@/lib/domain";
+import { deleteImage, uploadImage } from "@/lib/avatar-storage";
 import { currentProfile, currentUser } from "@/lib/session";
 import { signOut } from "@workos-inc/authkit-nextjs";
 
@@ -56,12 +57,19 @@ export async function saveProfile(_: string, form: FormData): Promise<string> {
     if (!avatarType) return "Use PNG, JPEG, or WebP image.";
     avatar = bytes;
   }
+  const avatarPath = avatar ? `${profile.id}/${crypto.randomUUID()}.${avatarType === "image/png" ? "png" : avatarType === "image/jpeg" ? "jpg" : "webp"}` : undefined;
+  if (avatarPath && avatar && avatarType) {
+    try { await uploadImage(avatarPath, avatar, avatarType); }
+    catch { return "Image upload failed. Try again."; }
+  }
   try {
-    await db.profile.update({ where: { id: profile.id }, data: { username, displayName, bio, theme, socials, ...(avatar ? { avatar, avatarType } : {}) } });
+    await db.profile.update({ where: { id: profile.id }, data: { username, displayName, bio, theme, socials, ...(avatarPath ? { avatarPath } : {}) } });
   } catch (error) {
+    if (avatarPath) await deleteImage(avatarPath).catch(() => {});
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return "Username already taken.";
     throw error;
   }
+  if (avatarPath && profile.avatarPath) await deleteImage(profile.avatarPath).catch(() => {});
   revalidatePath(`/${profile.username}`);
   revalidatePath(`/${username}`);
   revalidatePath("/dashboard");
@@ -72,22 +80,50 @@ export async function saveLink(_: string, form: FormData): Promise<string> {
   const profile = await currentProfile();
   const id = String(form.get("id") ?? "");
   const title = String(form.get("title") ?? "").trim();
+  const description = String(form.get("description") ?? "").trim();
   const url = String(form.get("url") ?? "").trim();
   const enabled = form.get("enabled") === "on";
   if (!title || title.length > 100 || !validUrl(url) || url.length > 2048) return "Title max 100 characters; URL must start with https:// or http://.";
-  if (id) {
-    const result = await db.link.updateMany({ where: { id, profileId: profile.id, deletedAt: null }, data: { title, url, enabled } });
-    if (!result.count) return "Link not found.";
-  } else {
-    try {
+  if (description.length > 240) return "Description max 240 characters.";
+  const file = form.get("image");
+  let image: Uint8Array | undefined;
+  let imageType: string | undefined;
+  if (file instanceof File && file.size) {
+    if (file.size > 1024 * 1024) return "Image must be under 1 MB.";
+    image = new Uint8Array(await file.arrayBuffer());
+    const png = image.length > 8 && image.slice(0, 8).every((v, i) => v === [137,80,78,71,13,10,26,10][i]);
+    const jpeg = image[0] === 255 && image[1] === 216 && image[2] === 255;
+    const webp = new TextDecoder().decode(image.slice(0, 4)) === "RIFF" && new TextDecoder().decode(image.slice(8, 12)) === "WEBP";
+    imageType = png ? "image/png" : jpeg ? "image/jpeg" : webp ? "image/webp" : undefined;
+    if (!imageType) return "Use PNG, JPEG, or WebP image.";
+  }
+  const imagePath = image ? `links/${profile.id}/${crypto.randomUUID()}.${imageType === "image/png" ? "png" : imageType === "image/jpeg" ? "jpg" : "webp"}` : undefined;
+  const previous = id ? await db.link.findFirst({ where: { id, profileId: profile.id, deletedAt: null }, select: { imagePath: true } }) : null;
+  if (id && !previous) return "Link not found.";
+  if (imagePath && image && imageType) {
+    try { await uploadImage(imagePath, image, imageType); }
+    catch { return "Image upload failed. Try again."; }
+  }
+  try {
+    if (id) {
+      const result = await db.link.updateMany({ where: { id, profileId: profile.id, deletedAt: null }, data: { title, description, url, enabled, ...(imagePath ? { imagePath } : {}) } });
+      if (!result.count) throw new Error("Link not found.");
+    } else {
       await db.$transaction(async tx => {
         const count = await tx.link.count({ where: { profileId: profile.id, deletedAt: null } });
         if (!isPro(profile) && count >= 15) throw new Error("LIMIT");
         const last = await tx.link.findFirst({ where: { profileId: profile.id, deletedAt: null }, orderBy: { position: "desc" } });
-        await tx.link.create({ data: { profileId: profile.id, title, url, enabled, position: (last?.position ?? -1) + 1 } });
+        await tx.link.create({ data: { profileId: profile.id, title, description, url, enabled, imagePath, position: (last?.position ?? -1) + 1 } });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-    } catch (error) { if (error instanceof Error && error.message === "LIMIT") return "Free plan allows 15 links."; if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return "Links changed. Try again."; throw error; }
+    }
+  } catch (error) {
+    if (imagePath) await deleteImage(imagePath).catch(() => {});
+    if (error instanceof Error && error.message === "LIMIT") return "Free plan allows 15 links.";
+    if (error instanceof Error && error.message === "Link not found.") return error.message;
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return "Links changed. Try again.";
+    throw error;
   }
+  if (imagePath && previous?.imagePath) await deleteImage(previous.imagePath).catch(() => {});
   revalidatePath("/dashboard");
   revalidatePath(`/${profile.username}`);
   return "Saved.";
@@ -95,7 +131,10 @@ export async function saveLink(_: string, form: FormData): Promise<string> {
 
 export async function deleteLink(form: FormData) {
   const profile = await currentProfile();
-  await db.link.updateMany({ where: { id: String(form.get("id") ?? ""), profileId: profile.id, deletedAt: null }, data: { deletedAt: new Date(), enabled: false } });
+  const id = String(form.get("id") ?? "");
+  const link = await db.link.findFirst({ where: { id, profileId: profile.id, deletedAt: null }, select: { imagePath: true } });
+  await db.link.updateMany({ where: { id, profileId: profile.id, deletedAt: null }, data: { deletedAt: new Date(), enabled: false } });
+  if (link?.imagePath) await deleteImage(link.imagePath).catch(() => {});
   revalidatePath("/dashboard"); revalidatePath(`/${profile.username}`);
 }
 

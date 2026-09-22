@@ -5,12 +5,16 @@ Small link-in-bio app: WorkOS AuthKit, profiles, 15 free links, analytics, and o
 ## Run locally
 
 1. `pnpm install`
-2. Copy `.env.example` to `.env`, set Postgres, WorkOS, analytics, and Paddle values.
+2. Copy `.env.example` to `.env`, set Postgres, WorkOS, analytics, Supabase Storage, and Paddle values.
 3. `pnpm db:migrate` (or `pnpm db:dev` while changing schema).
 4. `pnpm dev`
 5. In another terminal, run `pnpm smoke` for a disposable public-page and analytics check. Complete hosted sign-in manually in browser.
 
 Use Neon pooled `DATABASE_URL` for app queries and direct `DATABASE_URL_UNPOOLED` for Prisma migrations. Generate separate random values for `APP_SIGNING_SECRET`, `ANALYTICS_SECRET`, and `WORKOS_COOKIE_PASSWORD` (`openssl rand -hex 32`).
+
+## Avatar storage
+
+Set `SUPABASE_S3_ACCESS_KEY_ID` and `SUPABASE_S3_SECRET_ACCESS_KEY` on server. Supabase project `amkaxkwibayijmsjuioe` uses S3 region `ap-southeast-2`. Set existing `avatars` bucket to **public** in Supabase Storage dashboard and restrict uploads to PNG, JPEG, and WebP at 1 MB. Profile and link images are uploaded through authenticated app actions; database stores only object paths. Add same two secrets to deployment environment.
 
 ## WorkOS setup
 

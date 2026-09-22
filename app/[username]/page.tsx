@@ -3,12 +3,13 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { PublicProfile } from "@/components/public-profile";
 import { recordView } from "@/lib/analytics";
+import { imageUrl } from "@/lib/avatar-storage";
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
   const { username } = await params;
-  const profile = await db.profile.findUnique({ where: { username }, select: { displayName: true, bio: true, id: true, avatar: true, updatedAt: true } });
+  const profile = await db.profile.findUnique({ where: { username }, select: { displayName: true, bio: true, avatarPath: true } });
   if (!profile) return {};
-  return { title: `${profile.displayName} — linkbio`, description: profile.bio || `Links from ${profile.displayName}`, openGraph: { images: profile.avatar ? [`/avatar/${profile.id}?v=${profile.updatedAt.getTime()}`] : [] } };
+  return { title: `${profile.displayName} — linkbio`, description: profile.bio || `Links from ${profile.displayName}`, openGraph: { images: profile.avatarPath ? [imageUrl(profile.avatarPath)] : [] } };
 }
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;

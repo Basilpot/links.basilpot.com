@@ -17,42 +17,43 @@ model User {
 }
 
 model Profile {
-  id                   String    @id @default(uuid()) @db.Uuid
-  userId               String    @unique @db.Uuid
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  username             String    @unique
+  id                   String      @id @default(uuid()) @db.Uuid
+  userId               String      @unique @db.Uuid
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  username             String      @unique
   displayName          String
-  bio                  String    @default("")
-  avatar               Bytes?
-  avatarType           String?
-  theme                String    @default("paper")
-  socials              Json      @default("{}")
-  customDomain         String?   @unique
-  paddleCustomerId     String?   @unique
-  paddleSubscriptionId String?   @unique
+  bio                  String      @default("")
+  avatarPath           String?
+  theme                String      @default("paper")
+  socials              Json        @default("{}")
+  customDomain         String?     @unique
+  paddleCustomerId     String?     @unique
+  paddleSubscriptionId String?     @unique
   paddlePriceId        String?
   subscriptionStatus   String?
   currentPeriodEnd     DateTime?
   subscriptionEventAt  DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
   links                Link[]
   views                PageView[]
   clicks               LinkClick[]
 }
 
 model Link {
-  id        String      @id @default(uuid()) @db.Uuid
-  profileId String      @db.Uuid
-  profile   Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  title     String
-  url       String
-  position  Int
-  enabled   Boolean     @default(true)
-  deletedAt DateTime?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  clicks    LinkClick[]
+  id          String      @id @default(uuid()) @db.Uuid
+  profileId   String      @db.Uuid
+  profile     Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title       String
+  description String      @default("")
+  url         String
+  imagePath   String?
+  position    Int
+  enabled     Boolean     @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  clicks      LinkClick[]
 
   @@index([profileId, position])
 }
