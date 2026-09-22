@@ -1,6 +1,6 @@
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
-const bucket = "avatars";
+const bucket = "links-by-basilpot";
 const project = "amkaxkwibayijmsjuioe";
 
 function storage() {
