@@ -26,54 +26,58 @@ export async function claim(_: string, form: FormData): Promise<string> {
   redirect("/dashboard");
 }
 
-export async function saveProfile(_: string, form: FormData): Promise<string> {
+export type ProfileFormState = { status: string; errors: Record<string, string> };
+
+export async function saveProfile(_: ProfileFormState, form: FormData): Promise<ProfileFormState> {
+  const invalid = (field: string, message: string): ProfileFormState => ({ status: "", errors: { [field]: message } });
   const profile = await currentProfile();
   const username = String(form.get("username") ?? "").trim().toLowerCase();
   const displayName = String(form.get("displayName") ?? "").trim();
   const bio = String(form.get("bio") ?? "").trim();
   const theme = String(form.get("theme") ?? "paper");
-  if (!validUsername(username)) return "Invalid or reserved username.";
-  if (!displayName || displayName.length > 80 || bio.length > 240) return "Name required (max 80). Bio max 240 characters.";
-  if (!themes.includes(theme as typeof themes[number])) return "Invalid theme.";
-  if (!isPro(profile) && !["paper", "ink", "sand"].includes(theme)) return "Upgrade to Pro for this theme.";
+  if (!validUsername(username)) return invalid("username", "Invalid or reserved username.");
+  if (!displayName || displayName.length > 80) return invalid("displayName", "Name required (max 80 characters).");
+  if (bio.length > 240) return invalid("bio", "Bio max 240 characters.");
+  if (!themes.includes(theme as typeof themes[number])) return invalid("theme", "Invalid theme.");
+  if (!isPro(profile) && !["paper", "ink", "sand"].includes(theme)) return invalid("theme", "Upgrade to Pro for this theme.");
   const socials: Record<string, string> = {};
   for (const platform of socialPlatforms) {
     const raw = String(form.get(platform) ?? "").trim();
     if (!raw) continue;
     const value = platform === "email" && !raw.startsWith("mailto:") ? `mailto:${raw}` : raw;
-    if (!socialUrl(platform, value)) return `Invalid ${platform} URL.`;
+    if (!socialUrl(platform, value)) return invalid(platform, `Invalid ${platform} URL.`);
     socials[platform] = value;
   }
   const file = form.get("avatar");
   let avatar: Uint8Array<ArrayBuffer> | undefined;
   let avatarType: string | undefined;
   if (file instanceof File && file.size) {
-    if (file.size > 1024 * 1024) return "Image must be under 1 MB.";
+    if (file.size > 4 * 1024 * 1024) return invalid("avatar", "Image must be under 4 MB.");
     const bytes = new Uint8Array(await file.arrayBuffer());
     const png = bytes.length > 8 && bytes.slice(0, 8).every((v, i) => v === [137,80,78,71,13,10,26,10][i]);
     const jpeg = bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
     const webp = new TextDecoder().decode(bytes.slice(0, 4)) === "RIFF" && new TextDecoder().decode(bytes.slice(8, 12)) === "WEBP";
     avatarType = png ? "image/png" : jpeg ? "image/jpeg" : webp ? "image/webp" : undefined;
-    if (!avatarType) return "Use PNG, JPEG, or WebP image.";
+    if (!avatarType) return invalid("avatar", "Use PNG, JPEG, or WebP image.");
     avatar = bytes;
   }
   const avatarPath = avatar ? `${profile.id}/${crypto.randomUUID()}.${avatarType === "image/png" ? "png" : avatarType === "image/jpeg" ? "jpg" : "webp"}` : undefined;
   if (avatarPath && avatar && avatarType) {
     try { await uploadImage(avatarPath, avatar, avatarType); }
-    catch { return "Image upload failed. Try again."; }
+    catch { return invalid("avatar", "Image upload failed. Try again."); }
   }
   try {
     await db.profile.update({ where: { id: profile.id }, data: { username, displayName, bio, theme, socials, ...(avatarPath ? { avatarPath } : {}) } });
   } catch (error) {
     if (avatarPath) await deleteImage(avatarPath).catch(() => {});
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return "Username already taken.";
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return invalid("username", "Username already taken.");
     throw error;
   }
   if (avatarPath && profile.avatarPath) await deleteImage(profile.avatarPath).catch(() => {});
   revalidatePath(`/${profile.username}`);
   revalidatePath(`/${username}`);
   revalidatePath("/dashboard");
-  return "Saved.";
+  return { status: "Saved.", errors: {} };
 }
 
 export async function saveLink(_: string, form: FormData): Promise<string> {
@@ -89,7 +93,7 @@ export async function saveLink(_: string, form: FormData): Promise<string> {
   let image: Uint8Array | undefined;
   let imageType: string | undefined;
   if (file instanceof File && file.size) {
-    if (file.size > 1024 * 1024) return "Image must be under 1 MB.";
+    if (file.size > 4 * 1024 * 1024) return "Image must be under 4 MB.";
     image = new Uint8Array(await file.arrayBuffer());
     const png = image.length > 8 && image.slice(0, 8).every((v, i) => v === [137,80,78,71,13,10,26,10][i]);
     const jpeg = image[0] === 255 && image[1] === 216 && image[2] === 255;
