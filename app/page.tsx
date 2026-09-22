@@ -6,13 +6,14 @@ import { db } from "@/lib/db";
 import { PublicProfile } from "@/components/public-profile";
 import { isPro } from "@/lib/core";
 import { recordView } from "@/lib/analytics";
+import CircularGallery from "@/components/CircularGallery";
 
 const stories = [
-  { src: "/home-stories/creator-1.jpg", alt: "Smiling child outdoors", position: "home-story-first" },
-  { src: "/home-stories/creator-2.jpg", alt: "Community worker outdoors", position: "home-story-second" },
-  { src: "/home-stories/creator-3.jpg", alt: "Woman embracing a dog", position: "home-story-center" },
-  { src: "/home-stories/creator-4.jpg", alt: "Runners together", position: "home-story-fourth" },
-  { src: "/home-stories/creator-5.jpg", alt: "Smiling supporter", position: "home-story-fifth" },
+  { image: "/home-stories/creator-1.jpg", text: "Share your moments" },
+  { image: "/home-stories/creator-2.jpg", text: "Share your work" },
+  { image: "/home-stories/creator-3.jpg", text: "Share your passions" },
+  { image: "/home-stories/creator-4.jpg", text: "Share your community" },
+  { image: "/home-stories/creator-5.jpg", text: "Share your story" },
 ];
 
 export default async function Home() {
@@ -39,8 +40,8 @@ export default async function Home() {
         <h1 id="home-title" className="mx-auto mt-7 max-w-4xl text-5xl leading-[1.02] font-bold tracking-tight sm:text-6xl lg:text-7xl">One simple page for everything you want to share.</h1>
         <Link prefetch={false} className="button mt-9" href="/signup">Create your page <ArrowRight className="size-4" aria-hidden="true" /></Link>
       </div>
-      <div className="home-gallery mx-auto mt-16 max-w-7xl sm:mt-20" aria-label="People sharing what matters to them">
-        {stories.map(story => <div key={story.src} className={`home-story ${story.position}`}><Image src={story.src} alt={story.alt} fill sizes="(max-width: 640px) 30vw, 22vw" className="rounded-2xl object-cover sm:rounded-3xl" /></div>)}
+      <div className="relative mx-auto mt-12 h-72 max-w-7xl text-foreground sm:mt-16 sm:h-96">
+        <CircularGallery items={stories} bend={3} borderRadius={0.05} scrollEase={0.02} />
       </div>
     </section>
 
