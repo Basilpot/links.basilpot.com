@@ -1,26 +1,18 @@
 @import "tailwindcss";
+:root { --background: #fafaf9; --foreground: #18181b; --muted: #71717a; --border: #e4e4e7; --primary: #18181b; --primary-foreground: #fff; }
+@theme inline { --color-background: var(--background); --color-foreground: var(--foreground); --color-muted-foreground: var(--muted); --color-border: var(--border); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); }
+body { background: var(--background); color: var(--foreground); }
+a, button, input, textarea, select { outline-offset: 3px; }
+.input { width: 100%; border: 1px solid var(--border); border-radius: .65rem; background: #fff; padding: .65rem .8rem; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border-radius: .65rem; background: var(--primary); color: var(--primary-foreground); padding: .65rem 1rem; font-weight: 600; cursor: pointer; }
+.button:disabled { opacity: .55; cursor: wait; }
+.button-plain { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: .65rem; padding: .6rem .9rem; background: #fff; cursor: pointer; }
+.label { display: block; margin-bottom: .35rem; font-size: .875rem; font-weight: 600; }
+.panel { border: 1px solid var(--border); border-radius: 1rem; background: #fff; padding: 1.25rem; }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+.profile-page { background: var(--profile-bg); color: var(--profile-text); }
+.theme-paper { --profile-bg: #fafaf9; --profile-text: #18181b; --link: #fff; --line: #e4e4e7; }
+.theme-ink { --profile-bg: #09090b; --profile-text: #fff; --link: #27272a; --line: #52525b; }
+.theme-sand { --profile-bg: #fffbeb; --profile-text: #292524; --link: #fffaf0; --line: #d6d3d1; }
+.theme-sage { --profile-bg: #ecfdf5; --profile-text: #022c22; --link: #f0fdf4; --line: #a7c4b5; }
+.theme-lavender { --profile-bg: #f5f3ff; --profile-text: #2e1065; --link: #faf5ff; --line: #c4b5fd; }

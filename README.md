@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# linkbio
 
-## Getting Started
+Small link-in-bio app: profiles, 15 free links, analytics, and one Paddle Pro tier.
 
-First, run the development server:
+## Run locally
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. `pnpm install`
+2. Copy `.env.example` to `.env`, set Postgres, Auth, analytics, and Paddle values.
+3. `pnpm db:migrate` (or `pnpm db:dev` while changing schema).
+4. `pnpm dev`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Use Neon pooled `DATABASE_URL` for app queries and direct `DATABASE_URL_UNPOOLED` for Prisma migrations. Generate separate random values for `AUTH_SECRET` and `ANALYTICS_SECRET` (`openssl rand -hex 32`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Paddle setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create one recurring Pro price in Paddle. Set its price ID as `NEXT_PUBLIC_PADDLE_PRICE_ID`, a Paddle.js client token as `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`, and server API key as `PADDLE_API_KEY`. Configure notification destination at `/api/paddle/webhook` and set its secret as `PADDLE_NOTIFICATION_WEBHOOK_SECRET`. Subscribe to `subscription.created`, `subscription.activated`, `subscription.updated`, `subscription.trialing`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, and `subscription.canceled`. Webhooks, not checkout redirects, update Pro access. For local webhook testing, expose local server through a tunnel or use Paddle simulator against a deployed preview.
 
-## Learn More
+## Custom domains
 
-To learn more about Next.js, take a look at the following resources:
+Pro user enters domain in Settings. App requires TXT record `_linkbio.<domain>` with verification value shown by form. Once verified, route serves profile on domain root. Deployment host must also accept domain and provision TLS; configure that with hosting provider before use. Custom domain stays stored if subscription lapses but stops serving Pro profile until active again.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Analytics
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Public profile visits are written after response. Main-link redirects write clicks before redirect. Unique visitors are approximated using HMAC of request IP and User-Agent; raw values are never stored. Counts may merge visitors sharing both values or split visitors whose IP changes. Keep `ANALYTICS_SECRET` stable or historical unique counts change meaning.

@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  profile      Profile?
+}
+
+model Profile {
+  id                   String    @id @default(uuid()) @db.Uuid
+  userId               String    @unique @db.Uuid
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  username             String    @unique
+  displayName          String
+  bio                  String    @default("")
+  avatar               Bytes?
+  avatarType           String?
+  theme                String    @default("paper")
+  socials              Json      @default("{}")
+  customDomain         String?   @unique
+  paddleCustomerId     String?   @unique
+  paddleSubscriptionId String?   @unique
+  paddlePriceId        String?
+  subscriptionStatus   String?
+  currentPeriodEnd     DateTime?
+  subscriptionEventAt  DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  links                Link[]
+  views                PageView[]
+  clicks               LinkClick[]
+}
+
+model Link {
+  id        String      @id @default(uuid()) @db.Uuid
+  profileId String      @db.Uuid
+  profile   Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title     String
+  url       String
+  position  Int
+  enabled   Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  clicks    LinkClick[]
+
+  @@index([profileId, position])
+}
+
+model PageView {
+  id          String   @id @default(uuid()) @db.Uuid
+  profileId   String   @db.Uuid
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  visitorHash String
+  createdAt   DateTime @default(now())
+
+  @@index([profileId, createdAt])
+  @@index([profileId, visitorHash])
+}
+
+model LinkClick {
+  id          String   @id @default(uuid()) @db.Uuid
+  profileId   String   @db.Uuid
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  linkId      String   @db.Uuid
+  link        Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  visitorHash String
+  createdAt   DateTime @default(now())
+
+  @@index([profileId, createdAt])
+  @@index([linkId, createdAt])
+}
