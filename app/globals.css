@@ -33,3 +33,21 @@ a, button, input, textarea, select { outline-offset: 3px; }
 .button-plain { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 999px; padding: .65rem 1rem; background: var(--card); cursor: pointer; }
 .label { display: block; margin-bottom: .35rem; font-size: .875rem; font-weight: 600; }
 .panel { border: 1px solid var(--border); border-radius: 1.25rem; background: var(--card); padding: 1.25rem; }
+
+.home-gallery { position: relative; height: 16rem; width: 120%; margin-left: -10%; }
+.home-story { position: absolute; bottom: 0; width: 23%; height: 75%; border: .35rem solid var(--background); border-radius: 1.75rem; overflow: hidden; box-shadow: var(--shadow-sm); }
+.home-story-first { left: -5%; transform: rotate(-27deg); }
+.home-story-second { left: 11%; bottom: .25rem; transform: rotate(-13deg); }
+.home-story-center { left: 38.5%; bottom: 2rem; transform: rotate(-3deg); }
+.home-story-fourth { right: 11%; bottom: .25rem; transform: rotate(13deg); }
+.home-story-fifth { right: -5%; transform: rotate(27deg); }
+@media (min-width: 640px) {
+  .home-gallery { width: 100%; margin-left: auto; height: 21rem; }
+  .home-story { width: 21%; height: 76%; border-width: .5rem; }
+  .home-story-first { left: -1%; }
+  .home-story-second { left: 14%; bottom: 1rem; }
+  .home-story-center { left: 39.5%; bottom: 3rem; }
+  .home-story-fourth { right: 14%; bottom: 1rem; }
+  .home-story-fifth { right: -1%; }
+}
+@media (min-width: 1024px) { .home-gallery { height: 24rem; } }

@@ -1,15 +1,52 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { PublicProfile } from "@/components/public-profile";
 import { isPro } from "@/lib/core";
 import { recordView } from "@/lib/analytics";
 
+const stories = [
+  { src: "/home-stories/creator-1.jpg", alt: "Smiling child outdoors", position: "home-story-first" },
+  { src: "/home-stories/creator-2.jpg", alt: "Community worker outdoors", position: "home-story-second" },
+  { src: "/home-stories/creator-3.jpg", alt: "Woman embracing a dog", position: "home-story-center" },
+  { src: "/home-stories/creator-4.jpg", alt: "Runners together", position: "home-story-fourth" },
+  { src: "/home-stories/creator-5.jpg", alt: "Smiling supporter", position: "home-story-fifth" },
+];
+
 export default async function Home() {
   const host = (await headers()).get("host")?.split(":")[0]?.toLowerCase();
   const appHost = new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").hostname;
   const profile = host && host !== appHost ? await db.profile.findUnique({ where: { customDomain: host }, include: { links: { where: { enabled: true, deletedAt: null }, orderBy: { position: "asc" } } } }) : null;
-  if (profile && isPro(profile)) { await recordView(profile.id); return <PublicProfile profile={profile} />; }
-  return <main className="marketing-grid min-h-screen"><div className="mx-auto max-w-6xl px-5 sm:px-8"><header className="flex items-center justify-between py-6"><Link href="/" className="inline-flex items-center"><Image src="/logo.svg" alt="Links by Basilpot" width={176} height={33} priority /></Link><nav className="flex items-center gap-3"><Link className="button-plain text-sm" href="/login">Log in</Link></nav></header><section className="grid min-h-[680px] items-center gap-14 py-16 lg:grid-cols-[1.05fr_.95fr] lg:py-24"><div><p className="mb-6 inline-flex rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground">Simple pages. Useful numbers.</p><h1 className="max-w-3xl text-5xl font-semibold leading-[1.02] tracking-[-.045em] sm:text-7xl">One simple page for everything you want to share.</h1><p className="mt-7 max-w-xl text-lg leading-8 text-muted-foreground">Your links, your profile, and the numbers that matter. Up to 15 links free, with no unnecessary creator-platform features.</p><div className="mt-9 flex flex-wrap gap-3"><Link prefetch={false} className="button" href="/signup">Create your page <span aria-hidden="true">→</span></Link><Link className="button-plain" href="/example">View example</Link></div><p className="mt-7 text-sm text-muted-foreground">Free forever · Fast on every device · Privacy-conscious analytics</p></div><div className="relative mx-auto w-full max-w-sm"><div className="absolute -inset-5 rounded-3xl bg-muted blur-2xl"/><div className="relative rounded-3xl border border-border bg-card p-5 shadow-xl"><div className="rounded-2xl bg-muted px-5 py-8 text-center"><div className="mx-auto grid size-16 place-items-center rounded-full bg-secondary text-xl font-bold text-secondary-foreground">T</div><h2 className="mt-4 text-xl font-semibold">Tej Kshetri</h2><p className="mt-1 text-sm text-muted-foreground">Full-stack developer</p><div className="mt-7 space-y-3"><div className="rounded-full bg-card px-4 py-3 text-sm font-semibold">Basilpot</div><div className="rounded-full bg-card px-4 py-3 text-sm font-semibold">Portfolio</div><div className="rounded-full bg-card px-4 py-3 text-sm font-semibold">GitHub</div></div></div></div></div></section><section className="border-t border-border py-14"><p className="text-sm font-bold uppercase tracking-[.16em] text-primary">Everything you need, nothing you don’t</p><div className="mt-7 grid gap-5 sm:grid-cols-3"><div><h2 className="text-xl font-semibold">One link</h2><p className="mt-2 leading-7 text-muted-foreground">A clean home for your work, social accounts, and favorite places online.</p></div><div><h2 className="text-xl font-semibold">Useful numbers</h2><p className="mt-2 leading-7 text-muted-foreground">See views, visitors, clicks, and CTR without a complicated analytics suite.</p></div><div><h2 className="text-xl font-semibold">Built to load fast</h2><p className="mt-2 leading-7 text-muted-foreground">A lightweight public page that gets out of the way.</p></div></div></section><footer className="border-t border-border py-8 text-sm text-muted-foreground">A small, fast home for your links.</footer></div></main>;
+  if (profile && isPro(profile)) {
+    await recordView(profile.id);
+    return <PublicProfile profile={profile} />;
+  }
+
+  return <main className="min-h-screen overflow-hidden bg-background text-foreground">
+    <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
+      <Link href="/" className="inline-flex shrink-0 items-center"><Image src="/logo.svg" alt="Links by Basilpot" width={176} height={33} priority /></Link>
+      <nav aria-label="Primary navigation" className="flex items-center gap-2 sm:gap-4">
+        <Link href="/login" className="px-3 py-2 text-sm font-medium hover:underline">Log in</Link>
+        <Link href="/signup" className="button-plain text-xs font-semibold sm:text-sm">Create your page</Link>
+      </nav>
+    </header>
+
+    <section className="pt-16 text-center sm:pt-20 lg:pt-24" aria-labelledby="home-title">
+      <div className="relative z-10 mx-auto max-w-4xl px-5">
+        <span className="inline-flex rounded-md bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground sm:text-sm">One page. Every link.</span>
+        <h1 id="home-title" className="mx-auto mt-7 max-w-4xl text-5xl leading-[1.02] font-bold tracking-tight sm:text-6xl lg:text-7xl">One simple page for everything you want to share.</h1>
+        <Link prefetch={false} className="button mt-9" href="/signup">Create your page <ArrowRight className="size-4" aria-hidden="true" /></Link>
+      </div>
+      <div className="home-gallery mx-auto mt-16 max-w-7xl sm:mt-20" aria-label="People sharing what matters to them">
+        {stories.map(story => <div key={story.src} className={`home-story ${story.position}`}><Image src={story.src} alt={story.alt} fill sizes="(max-width: 640px) 30vw, 22vw" className="rounded-2xl object-cover sm:rounded-3xl" /></div>)}
+      </div>
+    </section>
+
+    <section className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-2 border-t border-border px-5 py-7 text-center text-sm text-muted-foreground sm:flex-row sm:gap-6">
+      <p>Your links, your profile, your story. Start with one page.</p>
+      <Link href="/example" className="inline-flex items-center gap-1 font-semibold text-foreground hover:underline">View example <ArrowRight className="size-4" aria-hidden="true" /></Link>
+    </section>
+  </main>;
 }
