@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Inter_Tight } from "next/font/google";
+import { Manrope, Montserrat } from "next/font/google";
 import "./globals.css";
-const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", display: "swap" });
-const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight", display: "swap" });
+const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 export const metadata: Metadata = { metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"), title: "LINKS by Basilpot — one link for everything", description: "A simple page for your links, with useful analytics." };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en" className={`${bricolage.variable} ${interTight.variable}`}><body className="min-h-screen">{children}</body></html>;
+  return <html lang="en" className={`${montserrat.variable} ${manrope.variable}`}><body className="min-h-screen">{children}</body></html>;
 }
