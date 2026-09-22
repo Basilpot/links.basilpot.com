@@ -20,7 +20,7 @@ function SaveButton({ editing }: { editing: boolean }) {
   return <Button type="submit" disabled={pending}>{pending ? "Saving…" : editing ? "Save link" : "Add link"}</Button>;
 }
 
-export function LinkEditor({ link }: { link?: EditableLink }) {
+export function LinkEditor({ link, existingImageUrl }: { link?: EditableLink; existingImageUrl?: string }) {
   const [open, setOpen] = useState(false);
   const [desktop, setDesktop] = useState(false);
   const [message, setMessage] = useState("");
@@ -56,8 +56,8 @@ export function LinkEditor({ link }: { link?: EditableLink }) {
     <div className="space-y-2"><Label htmlFor="link-description">Description</Label><Textarea id="link-description" name="description" maxLength={240} defaultValue={link?.description}/></div>
     <div className="space-y-2"><Label htmlFor="link-image">Image</Label><label htmlFor="link-image" className="relative flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-dashed border-border bg-muted/30 p-4 text-center hover:bg-muted/50 focus-within:ring-2 focus-within:ring-ring">
       <Input id="link-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={event => setPreview(event.target.files?.[0] ? URL.createObjectURL(event.target.files[0]) : null)}/>
-      {preview ? <><Image src={preview} alt="Selected image preview" fill unoptimized className="object-contain p-2"/><span className="relative rounded-md bg-background/90 px-2 py-1 text-xs font-medium">Change image</span></> : <><ImagePlus className="size-7 text-muted-foreground" aria-hidden="true"/><span className="text-sm font-medium">Upload image</span><span className="text-xs text-muted-foreground">PNG, JPEG, or WebP · max 1 MB</span></>}
-    </label>{link && <p className="text-xs text-muted-foreground">Leave empty to keep current image.</p>}</div>
+      {preview || existingImageUrl ? <><Image src={preview ?? existingImageUrl!} alt={preview ? "Selected image preview" : "Current link image"} fill unoptimized className="object-contain p-2"/><span className="relative rounded-md bg-background/90 px-2 py-1 text-xs font-medium">Change image</span></> : <><ImagePlus className="size-7 text-muted-foreground" aria-hidden="true"/><span className="text-sm font-medium">Upload image</span><span className="text-xs text-muted-foreground">PNG, JPEG, or WebP · max 1 MB</span></>}
+    </label>{existingImageUrl && <p className="text-xs text-muted-foreground">Choose a new image to replace the current one.</p>}</div>
     <div className="space-y-2"><Label htmlFor="link-url">URL</Label><Input id="link-url" name="url" type="url" placeholder="https://example.com" defaultValue={link?.url} required/></div>
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={link?.enabled ?? true}/> Active</label>
     {message && <p role="status" className="text-sm text-destructive">{message}</p>}
