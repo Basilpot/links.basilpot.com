@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Pencil, Plus } from "lucide-react";
+import Image from "next/image";
+import { ImagePlus, Pencil, Plus } from "lucide-react";
 import type { Link as ProfileLink } from "@/generated/prisma/client";
 import { saveLink } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export function LinkEditor({ link }: { link?: EditableLink }) {
   const [open, setOpen] = useState(false);
   const [desktop, setDesktop] = useState(false);
   const [message, setMessage] = useState("");
+  const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 768px)");
@@ -31,6 +33,10 @@ export function LinkEditor({ link }: { link?: EditableLink }) {
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
+
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview); };
+  }, [preview]);
 
   async function submit(form: FormData) {
     const result = await saveLink("", form);
@@ -48,7 +54,10 @@ export function LinkEditor({ link }: { link?: EditableLink }) {
     <input type="hidden" name="id" value={link?.id ?? ""}/>
     <div className="space-y-2"><Label htmlFor="link-title">Title</Label><Input id="link-title" name="title" maxLength={100} defaultValue={link?.title} required/></div>
     <div className="space-y-2"><Label htmlFor="link-description">Description</Label><Textarea id="link-description" name="description" maxLength={240} defaultValue={link?.description}/></div>
-    <div className="space-y-2"><Label htmlFor="link-image">Image</Label><Input id="link-image" name="image" type="file" accept="image/png,image/jpeg,image/webp"/><p className="text-xs text-muted-foreground">PNG, JPEG, or WebP · max 1 MB. Leave empty to keep current image.</p></div>
+    <div className="space-y-2"><Label htmlFor="link-image">Image</Label><label htmlFor="link-image" className="relative flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-dashed border-border bg-muted/30 p-4 text-center hover:bg-muted/50 focus-within:ring-2 focus-within:ring-ring">
+      <Input id="link-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={event => setPreview(event.target.files?.[0] ? URL.createObjectURL(event.target.files[0]) : null)}/>
+      {preview ? <><Image src={preview} alt="Selected image preview" fill unoptimized className="object-contain p-2"/><span className="relative rounded-md bg-background/90 px-2 py-1 text-xs font-medium">Change image</span></> : <><ImagePlus className="size-7 text-muted-foreground" aria-hidden="true"/><span className="text-sm font-medium">Upload image</span><span className="text-xs text-muted-foreground">PNG, JPEG, or WebP · max 1 MB</span></>}
+    </label>{link && <p className="text-xs text-muted-foreground">Leave empty to keep current image.</p>}</div>
     <div className="space-y-2"><Label htmlFor="link-url">URL</Label><Input id="link-url" name="url" type="url" placeholder="https://example.com" defaultValue={link?.url} required/></div>
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={link?.enabled ?? true}/> Active</label>
     {message && <p role="status" className="text-sm text-destructive">{message}</p>}
@@ -56,7 +65,7 @@ export function LinkEditor({ link }: { link?: EditableLink }) {
   </form>;
 
   return <>
-    <Button type="button" variant={link ? "outline" : "default"} size={link ? "icon" : "default"} aria-label={link ? `Edit ${link.title}` : undefined} onClick={() => { setMessage(""); setOpen(true); }}>
+    <Button type="button" variant={link ? "outline" : "default"} size={link ? "icon" : "default"} aria-label={link ? `Edit ${link.title}` : undefined} onClick={() => { setMessage(""); setPreview(null); setOpen(true); }}>
       {link ? <Pencil/> : <><Plus/> Add link</>}
     </Button>
     {desktop ? <Dialog open={open} onOpenChange={setOpen}>
