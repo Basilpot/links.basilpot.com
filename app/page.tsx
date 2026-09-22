@@ -38,7 +38,10 @@ export default async function Home() {
       <div className="relative z-10 mx-auto max-w-4xl px-5">
         <span className="inline-flex rounded-md bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground sm:text-sm">One page. Every link.</span>
         <h1 id="home-title" className="mx-auto mt-7 max-w-4xl text-5xl leading-[1.02] font-bold tracking-tight sm:text-6xl lg:text-7xl">One simple page for everything you want to share.</h1>
-        <Link prefetch={false} className="button mt-9" href="/signup">Create your page <ArrowRight className="size-4" aria-hidden="true" /></Link>
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <Link prefetch={false} className="button" href="/signup">Create your page <ArrowRight className="size-4" aria-hidden="true" /></Link>
+          <Link className="button-plain" href="/login">Sign in</Link>
+        </div>
       </div>
       <div className="relative mt-12 h-72 w-full text-foreground sm:mt-16 sm:h-96">
         <CircularGallery items={stories} bend={3} borderRadius={0.05} scrollEase={0.02} />
