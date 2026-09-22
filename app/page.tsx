@@ -40,7 +40,7 @@ export default async function Home() {
         <h1 id="home-title" className="mx-auto mt-7 max-w-4xl text-5xl leading-[1.02] font-bold tracking-tight sm:text-6xl lg:text-7xl">One simple page for everything you want to share.</h1>
         <Link prefetch={false} className="button mt-9" href="/signup">Create your page <ArrowRight className="size-4" aria-hidden="true" /></Link>
       </div>
-      <div className="relative mx-auto mt-12 h-72 max-w-7xl text-foreground sm:mt-16 sm:h-96">
+      <div className="relative mt-12 h-72 w-full text-foreground sm:mt-16 sm:h-96">
         <CircularGallery items={stories} bend={3} borderRadius={0.05} scrollEase={0.02} />
       </div>
     </section>
