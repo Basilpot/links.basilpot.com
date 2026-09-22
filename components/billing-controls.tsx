@@ -24,5 +24,6 @@ export function BillingControls({ pro, customer }: { pro: boolean; customer: boo
     try { window.location.href = await portalUrl(); }
     catch (error) { setMessage(error instanceof Error ? error.message : "Billing portal unavailable."); setPending(false); }
   }
+  if (!process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || !process.env.NEXT_PUBLIC_PADDLE_PRICE_ID) return null;
   return <div className="flex flex-wrap items-center gap-3">{!pro && <button className="button" disabled={pending} onClick={upgrade}>{pending ? "Opening…" : "Upgrade to Pro"}</button>}{customer && <button className="button-plain" disabled={pending} onClick={manage}>Manage billing</button>}{message && <p role="status" className="mt-2 text-sm text-muted-foreground">{message}</p>}</div>;
 }

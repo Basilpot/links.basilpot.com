@@ -20,6 +20,12 @@ An existing local profile is linked on first WorkOS sign-in only when WorkOS ver
 
 Codex WorkOS MCP is registered globally with `codex mcp add workos --url https://mcp.workos.com/mcp`; run `codex mcp login workos` if OAuth expires, then restart Codex to expose its tools.
 
+## Deploy to links.basilpot.com
+
+Import this GitHub repository into Vercel as a Next.js project. Set `DATABASE_URL` to the existing Neon pooled URL and `DATABASE_URL_UNPOOLED` to its direct URL. Set `NEXT_PUBLIC_APP_URL=https://links.basilpot.com` and `NEXT_PUBLIC_WORKOS_REDIRECT_URI=https://links.basilpot.com/auth/callback` before building. Copy the remaining server secrets from local `.env` into Vercel environment variables; never commit `.env`. Run `pnpm db:migrate` against Neon before deployment if new migrations were added.
+
+The current WorkOS staging environment allows both localhost and `links.basilpot.com` callback/sign-out URLs. It preserves existing users in the shared Neon database. WorkOS staging is intended for testing; move to production WorkOS before serving a wider audience. Paddle variables may remain empty while subscriptions are unavailable. Without a Paddle client token and price ID, the app hides checkout controls and keeps the 15-link free limit.
+
 ## Paddle setup
 
 Create one recurring Pro price in Paddle. Set its price ID as `NEXT_PUBLIC_PADDLE_PRICE_ID`, a Paddle.js client token as `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`, and server API key as `PADDLE_API_KEY`. Configure notification destination at `/api/paddle/webhook` and set its secret as `PADDLE_NOTIFICATION_WEBHOOK_SECRET`. Subscribe to `subscription.created`, `subscription.activated`, `subscription.updated`, `subscription.trialing`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, and `subscription.canceled`. Webhooks, not checkout redirects, update Pro access. For local webhook testing, expose local server through a tunnel or use Paddle simulator against a deployed preview.

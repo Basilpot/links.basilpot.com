@@ -86,7 +86,7 @@ export async function saveLink(_: string, form: FormData): Promise<string> {
         const last = await tx.link.findFirst({ where: { profileId: profile.id, deletedAt: null }, orderBy: { position: "desc" } });
         await tx.link.create({ data: { profileId: profile.id, title, url, enabled, position: (last?.position ?? -1) + 1 } });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-    } catch (error) { if (error instanceof Error && error.message === "LIMIT") return "Free plan allows 15 links. Upgrade to Pro for unlimited links."; if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return "Links changed. Try again."; throw error; }
+    } catch (error) { if (error instanceof Error && error.message === "LIMIT") return "Free plan allows 15 links."; if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return "Links changed. Try again."; throw error; }
   }
   revalidatePath("/dashboard");
   revalidatePath(`/${profile.username}`);
