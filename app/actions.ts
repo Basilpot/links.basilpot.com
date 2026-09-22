@@ -98,14 +98,14 @@ export async function saveLink(_: string, form: FormData): Promise<string> {
   const enabled = form.get("enabled") === "on";
   if (!title || title.length > 100 || !validUrl(url) || url.length > 2048) return "Title max 100 characters; URL must start with https:// or http://.";
   if (id) {
-    const result = await db.link.updateMany({ where: { id, profileId: profile.id }, data: { title, url, enabled } });
+    const result = await db.link.updateMany({ where: { id, profileId: profile.id, deletedAt: null }, data: { title, url, enabled } });
     if (!result.count) return "Link not found.";
   } else {
     try {
       await db.$transaction(async tx => {
-        const count = await tx.link.count({ where: { profileId: profile.id } });
+        const count = await tx.link.count({ where: { profileId: profile.id, deletedAt: null } });
         if (!isPro(profile) && count >= 15) throw new Error("LIMIT");
-        const last = await tx.link.findFirst({ where: { profileId: profile.id }, orderBy: { position: "desc" } });
+        const last = await tx.link.findFirst({ where: { profileId: profile.id, deletedAt: null }, orderBy: { position: "desc" } });
         await tx.link.create({ data: { profileId: profile.id, title, url, enabled, position: (last?.position ?? -1) + 1 } });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error) { if (error instanceof Error && error.message === "LIMIT") return "Free plan allows 15 links. Upgrade to Pro for unlimited links."; if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return "Links changed. Try again."; throw error; }
@@ -117,13 +117,13 @@ export async function saveLink(_: string, form: FormData): Promise<string> {
 
 export async function deleteLink(form: FormData) {
   const profile = await currentProfile();
-  await db.link.deleteMany({ where: { id: String(form.get("id") ?? ""), profileId: profile.id } });
+  await db.link.updateMany({ where: { id: String(form.get("id") ?? ""), profileId: profile.id, deletedAt: null }, data: { deletedAt: new Date(), enabled: false } });
   revalidatePath("/dashboard"); revalidatePath(`/${profile.username}`);
 }
 
 export async function moveLink(form: FormData) {
   const profile = await currentProfile();
-  const links = await db.link.findMany({ where: { profileId: profile.id }, orderBy: [{ position: "asc" }, { createdAt: "asc" }] });
+  const links = await db.link.findMany({ where: { profileId: profile.id, deletedAt: null }, orderBy: [{ position: "asc" }, { createdAt: "asc" }] });
   const index = links.findIndex(link => link.id === form.get("id"));
   const next = index + (form.get("direction") === "up" ? -1 : 1);
   if (index < 0 || next < 0 || next >= links.length) return;

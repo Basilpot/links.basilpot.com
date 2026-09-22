@@ -8,6 +8,7 @@ Small link-in-bio app: profiles, 15 free links, analytics, and one Paddle Pro ti
 2. Copy `.env.example` to `.env`, set Postgres, Auth, analytics, and Paddle values.
 3. `pnpm db:migrate` (or `pnpm db:dev` while changing schema).
 4. `pnpm dev`
+5. In another terminal, run `pnpm smoke` for a disposable end-to-end check against local server and configured database.
 
 Use Neon pooled `DATABASE_URL` for app queries and direct `DATABASE_URL_UNPOOLED` for Prisma migrations. Generate separate random values for `AUTH_SECRET` and `ANALYTICS_SECRET` (`openssl rand -hex 32`).
 

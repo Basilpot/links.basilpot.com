@@ -48,6 +48,7 @@ model Link {
   url       String
   position  Int
   enabled   Boolean     @default(true)
+  deletedAt DateTime?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   clicks    LinkClick[]

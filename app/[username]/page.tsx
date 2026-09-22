@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
 }
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-  const profile = await db.profile.findUnique({ where: { username }, include: { links: { where: { enabled: true }, orderBy: [{ position: "asc" }, { createdAt: "asc" }] } } });
+  const profile = await db.profile.findUnique({ where: { username }, include: { links: { where: { enabled: true, deletedAt: null }, orderBy: [{ position: "asc" }, { createdAt: "asc" }] } } });
   if (!profile) notFound();
   await recordView(profile.id);
   return <PublicProfile profile={profile} />;

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate deploy",
-    "db:dev": "prisma migrate dev"
+    "db:dev": "prisma migrate dev",
+    "smoke": "node --env-file=.env scripts/smoke.mjs"
   },
   "dependencies": {
     "@paddle/paddle-js": "^1.6.5",
