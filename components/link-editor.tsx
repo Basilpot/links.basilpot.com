@@ -50,7 +50,7 @@ export function LinkEditor({ link, existingImageUrl }: { link?: EditableLink; ex
     <input type="hidden" name="id" value={link?.id ?? ""}/>
     <div className="space-y-2"><Label htmlFor="link-title">Title</Label><Input id="link-title" name="title" maxLength={100} defaultValue={link?.title} required/></div>
     <div className="space-y-2"><Label htmlFor="link-description">Description</Label><Textarea id="link-description" name="description" maxLength={240} defaultValue={link?.description}/></div>
-    <ImagePicker key={open ? "open" : "closed"} id="link-image" name="image" label="Image" existingImageUrl={existingImageUrl}/>
+    <ImagePicker key={open ? "open" : "closed"} id="link-image" name="image" label="Image" existingImageUrl={existingImageUrl} kind="link"/>
     <div className="space-y-2"><Label htmlFor="link-url">URL</Label><Input id="link-url" name="url" type="url" placeholder="https://example.com" defaultValue={link?.url} required/></div>
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" defaultChecked={link?.enabled ?? true}/> Active</label>
     {message && <p role="status" className="text-sm text-destructive">{message}</p>}

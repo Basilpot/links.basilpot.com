@@ -1,4 +1,5 @@
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const bucket = "links-by-basilpot";
 const project = "amkaxkwibayijmsjuioe";
@@ -19,8 +20,8 @@ export function imageUrl(path: string) {
   return `https://${project}.supabase.co/storage/v1/object/public/${bucket}/${path}`;
 }
 
-export async function uploadImage(path: string, body: Uint8Array, contentType: string) {
-  await storage().send(new PutObjectCommand({ Bucket: bucket, Key: path, Body: body, ContentType: contentType, CacheControl: "public, max-age=31536000, immutable" }));
+export async function uploadUrl(path: string, contentType: string) {
+  return getSignedUrl(storage(), new PutObjectCommand({ Bucket: bucket, Key: path, ContentType: contentType }), { expiresIn: 300, signableHeaders: new Set(["content-type"]) });
 }
 
 export async function deleteImage(path: string) {

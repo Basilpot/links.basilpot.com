@@ -24,7 +24,7 @@ export function ProfileForm({ profile, billingReady, availableThemes, platforms 
   const { errors } = state;
 
   return <form action={action} className="space-y-4">
-    <ImagePicker id="avatar" name="avatar" label="Profile image" existingImageUrl={profile.avatarUrl} error={errors.avatar}/>
+    <ImagePicker id="avatar" name="avatar" label="Profile image" existingImageUrl={profile.avatarUrl} error={errors.avatar} kind="avatar"/>
     <div><label className="label" htmlFor="name">Display name</label><input id="name" name="displayName" className="input" defaultValue={profile.displayName} maxLength={80} required aria-invalid={!!errors.displayName} aria-describedby={errors.displayName ? "name-error" : undefined}/><FieldError id="name" message={errors.displayName}/></div>
     <div><label className="label" htmlFor="username">Username</label><input id="username" name="username" className="input" defaultValue={profile.username} minLength={3} maxLength={30} required aria-invalid={!!errors.username} aria-describedby={errors.username ? "username-error" : undefined}/><FieldError id="username" message={errors.username}/></div>
     <div><label className="label" htmlFor="bio">Bio</label><textarea id="bio" name="bio" className="input min-h-24" defaultValue={profile.bio} maxLength={240} aria-invalid={!!errors.bio} aria-describedby={errors.bio ? "bio-error" : undefined}/><FieldError id="bio" message={errors.bio}/></div>

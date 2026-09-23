@@ -7,11 +7,22 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { isPro, socialPlatforms, socialUrl, themes, validUrl, validUsername } from "@/lib/core";
 import { domainToken } from "@/lib/domain";
-import { deleteImage, uploadImage } from "@/lib/avatar-storage";
+import { deleteImage, uploadUrl } from "@/lib/avatar-storage";
 import { currentProfile, currentUser } from "@/lib/session";
 import { signOut } from "@workos-inc/authkit-nextjs";
 
 export async function logout() { await signOut(); }
+
+const imageTypes = ["image/png", "image/jpeg", "image/webp"] as const;
+export type ImageType = typeof imageTypes[number];
+
+export async function createUpload(kind: "link" | "avatar", type: ImageType): Promise<{ url: string; path: string } | { error: string }> {
+  const profile = await currentProfile();
+  if (!imageTypes.includes(type)) return { error: "Use PNG, JPEG, or WebP image." };
+  const ext = type === "image/png" ? "png" : type === "image/jpeg" ? "jpg" : "webp";
+  const path = kind === "link" ? `links/${profile.id}/${crypto.randomUUID()}.${ext}` : `${profile.id}/${crypto.randomUUID()}.${ext}`;
+  return { url: await uploadUrl(path, type), path };
+}
 
 export async function claim(_: string, form: FormData): Promise<string> {
   const userId = await currentUser();
@@ -48,32 +59,17 @@ export async function saveProfile(_: ProfileFormState, form: FormData): Promise<
     if (!socialUrl(platform, value)) return invalid(platform, `Invalid ${platform} URL.`);
     socials[platform] = value;
   }
-  const file = form.get("avatar");
-  let avatar: Uint8Array<ArrayBuffer> | undefined;
-  let avatarType: string | undefined;
-  if (file instanceof File && file.size) {
-    if (file.size > 4 * 1024 * 1024) return invalid("avatar", "Image must be under 4 MB.");
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const png = bytes.length > 8 && bytes.slice(0, 8).every((v, i) => v === [137,80,78,71,13,10,26,10][i]);
-    const jpeg = bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
-    const webp = new TextDecoder().decode(bytes.slice(0, 4)) === "RIFF" && new TextDecoder().decode(bytes.slice(8, 12)) === "WEBP";
-    avatarType = png ? "image/png" : jpeg ? "image/jpeg" : webp ? "image/webp" : undefined;
-    if (!avatarType) return invalid("avatar", "Use PNG, JPEG, or WebP image.");
-    avatar = bytes;
-  }
-  const avatarPath = avatar ? `${profile.id}/${crypto.randomUUID()}.${avatarType === "image/png" ? "png" : avatarType === "image/jpeg" ? "jpg" : "webp"}` : undefined;
-  if (avatarPath && avatar && avatarType) {
-    try { await uploadImage(avatarPath, avatar, avatarType); }
-    catch { return invalid("avatar", "Image upload failed. Try again."); }
-  }
+  const removeAvatar = form.get("removeImage") === "on";
+  const avatarPath = String(form.get("imagePath") ?? "").trim();
+  if (avatarPath && !avatarPath.startsWith(`${profile.id}/`)) return invalid("avatar", "Invalid image.");
   try {
-    await db.profile.update({ where: { id: profile.id }, data: { username, displayName, bio, theme, socials, ...(avatarPath ? { avatarPath } : {}) } });
+    await db.profile.update({ where: { id: profile.id }, data: { username, displayName, bio, theme, socials, ...(avatarPath ? { avatarPath } : removeAvatar ? { avatarPath: null } : {}) } });
   } catch (error) {
     if (avatarPath) await deleteImage(avatarPath).catch(() => {});
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return invalid("username", "Username already taken.");
     throw error;
   }
-  if (avatarPath && profile.avatarPath) await deleteImage(profile.avatarPath).catch(() => {});
+  if (profile.avatarPath && (avatarPath || removeAvatar)) await deleteImage(profile.avatarPath).catch(() => {});
   revalidatePath(`/${profile.username}`);
   revalidatePath(`/${username}`);
   revalidatePath("/dashboard");
@@ -89,28 +85,17 @@ export async function saveLink(_: string, form: FormData): Promise<string> {
   const enabled = form.get("enabled") === "on";
   if (!title || title.length > 100 || !validUrl(url) || url.length > 2048) return "Title max 100 characters; URL must start with https:// or http://.";
   if (description.length > 240) return "Description max 240 characters.";
-  const file = form.get("image");
-  let image: Uint8Array | undefined;
-  let imageType: string | undefined;
-  if (file instanceof File && file.size) {
-    if (file.size > 4 * 1024 * 1024) return "Image must be under 4 MB.";
-    image = new Uint8Array(await file.arrayBuffer());
-    const png = image.length > 8 && image.slice(0, 8).every((v, i) => v === [137,80,78,71,13,10,26,10][i]);
-    const jpeg = image[0] === 255 && image[1] === 216 && image[2] === 255;
-    const webp = new TextDecoder().decode(image.slice(0, 4)) === "RIFF" && new TextDecoder().decode(image.slice(8, 12)) === "WEBP";
-    imageType = png ? "image/png" : jpeg ? "image/jpeg" : webp ? "image/webp" : undefined;
-    if (!imageType) return "Use PNG, JPEG, or WebP image.";
-  }
-  const imagePath = image ? `links/${profile.id}/${crypto.randomUUID()}.${imageType === "image/png" ? "png" : imageType === "image/jpeg" ? "jpg" : "webp"}` : undefined;
+  const removeImage = form.get("removeImage") === "on";
+  const imagePath = String(form.get("imagePath") ?? "").trim();
+  if (imagePath && !imagePath.startsWith(`links/${profile.id}/`)) return "Invalid image.";
   const previous = id ? await db.link.findFirst({ where: { id, profileId: profile.id, deletedAt: null }, select: { imagePath: true } }) : null;
   if (id && !previous) return "Link not found.";
-  if (imagePath && image && imageType) {
-    try { await uploadImage(imagePath, image, imageType); }
-    catch { return "Image upload failed. Try again."; }
-  }
   try {
     if (id) {
-      const result = await db.link.updateMany({ where: { id, profileId: profile.id, deletedAt: null }, data: { title, description, url, enabled, ...(imagePath ? { imagePath } : {}) } });
+      const data: { title: string; description: string; url: string; enabled: boolean; imagePath?: string | null } = { title, description, url, enabled };
+      if (imagePath) data.imagePath = imagePath;
+      else if (removeImage) data.imagePath = null;
+      const result = await db.link.updateMany({ where: { id, profileId: profile.id, deletedAt: null }, data });
       if (!result.count) throw new Error("Link not found.");
     } else {
       await db.$transaction(async tx => {
@@ -127,7 +112,7 @@ export async function saveLink(_: string, form: FormData): Promise<string> {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return "Links changed. Try again.";
     throw error;
   }
-  if (imagePath && previous?.imagePath) await deleteImage(previous.imagePath).catch(() => {});
+  if (previous?.imagePath && (imagePath || removeImage)) await deleteImage(previous.imagePath).catch(() => {});
   revalidatePath("/dashboard");
   revalidatePath(`/${profile.username}`);
   return "Saved.";
@@ -142,16 +127,12 @@ export async function deleteLink(form: FormData) {
   revalidatePath("/dashboard"); revalidatePath(`/${profile.username}`);
 }
 
-export async function moveLink(form: FormData) {
+export async function reorderLinks(ids: string[]) {
   const profile = await currentProfile();
-  const links = await db.link.findMany({ where: { profileId: profile.id, deletedAt: null }, orderBy: [{ position: "asc" }, { createdAt: "asc" }] });
-  const index = links.findIndex(link => link.id === form.get("id"));
-  const next = index + (form.get("direction") === "up" ? -1 : 1);
-  if (index < 0 || next < 0 || next >= links.length) return;
-  await db.$transaction([
-    db.link.update({ where: { id: links[index].id }, data: { position: links[next].position } }),
-    db.link.update({ where: { id: links[next].id }, data: { position: links[index].position } }),
-  ]);
+  const links = await db.link.findMany({ where: { profileId: profile.id, deletedAt: null }, select: { id: true } });
+  const valid = new Set(links.map(link => link.id));
+  if (ids.length !== links.length || new Set(ids).size !== ids.length || ids.some(id => !valid.has(id))) return;
+  await db.$transaction(ids.map((id, position) => db.link.update({ where: { id }, data: { position } })));
   revalidatePath("/dashboard"); revalidatePath(`/${profile.username}`);
 }
 
