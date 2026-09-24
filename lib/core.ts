@@ -1,6 +1,5 @@
 import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
-import type { Profile } from "@/generated/prisma/client";
 
 export const reserved = new Set(["admin", "login", "signup", "dashboard", "settings", "api", "pricing", "about", "claim", "r", "avatar", "_next", "favicon.ico", "example"]);
 export const usernamePattern = /^[a-z0-9][a-z0-9_-]{2,29}$/;
@@ -17,12 +16,6 @@ export function validUrl(value: string) {
     const url = new URL(value);
     return (url.protocol === "https:" || url.protocol === "http:") && !!url.hostname;
   } catch { return false; }
-}
-
-export function isPro(profile: Pick<Profile, "subscriptionStatus" | "paddlePriceId" | "currentPeriodEnd">) {
-  return !!process.env.NEXT_PUBLIC_PADDLE_PRICE_ID && profile.paddlePriceId === process.env.NEXT_PUBLIC_PADDLE_PRICE_ID &&
-    (profile.subscriptionStatus === "active" || profile.subscriptionStatus === "trialing") &&
-    !!profile.currentPeriodEnd && profile.currentPeriodEnd > new Date();
 }
 
 export async function visitorHash() {

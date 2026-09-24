@@ -1,20 +1,30 @@
+// Smoke against the worker: node --env-file=.env scripts/smoke.mjs [--local]
+// Hits /login + /dashboard (AuthKit), a disposable public profile, and /r/<id> tracking.
 import assert from "node:assert/strict";
-import { Client } from "pg";
+import { randomUUID } from "node:crypto";
+import { spawnSync } from "node:child_process";
 
 const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const flag = process.argv.includes("--local") ? "--local" : "--remote";
+
+const d1 = sql => {
+  const r = spawnSync("wrangler", ["d1", "execute", "linkbio-db", flag, "--command", sql, "--config", "wrangler.jsonc"], { encoding: "utf8" });
+  assert.equal(r.status, 0, `wrangler failed: ${r.stderr ?? sql}`);
+  return r.stdout;
+};
+
 const suffix = Date.now().toString(36);
 const email = `smoke-${suffix}@example.test`;
 const username = `smoke${suffix}`;
-const db = new Client({ connectionString: process.env.DATABASE_URL });
+const userId = randomUUID();
+const profileId = randomUUID();
+const linkId = randomUUID();
 
+const now = new Date().toISOString();
 try {
-  await db.connect();
-  const created = await db.query('INSERT INTO "User" (id, email, "workosId") VALUES (gen_random_uuid(), $1, $2) RETURNING id', [email, `user_${suffix}`]);
-  const userId = created.rows[0].id;
-  const profile = await db.query('INSERT INTO "Profile" (id, "userId", username, "displayName", "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, now()) RETURNING id', [userId, username, "Smoke Tester"]);
-  const profileId = profile.rows[0].id;
-  const link = await db.query('INSERT INTO "Link" (id, "profileId", title, url, position, "updatedAt") VALUES (gen_random_uuid(), $1, $2, $3, 0, now()) RETURNING id', [profileId, "Smoke link", "https://example.com"]);
-  const linkId = link.rows[0].id;
+  d1(`INSERT INTO "User" (id, email, "workosId") VALUES ('${userId}', '${email}', 'user_${suffix}')`);
+  d1(`INSERT INTO "Profile" (id, "userId", username, "displayName", "updatedAt") VALUES ('${profileId}', '${userId}', '${username}', 'Smoke Tester', '${now}')`);
+  d1(`INSERT INTO "Link" (id, "profileId", title, url, position, "updatedAt") VALUES ('${linkId}', '${profileId}', 'Smoke link', 'https://example.com', 0, '${now}')`);
 
   for (const path of ["/login", "/signup"]) {
     const response = await fetch(new URL(path, base), { redirect: "manual" });
@@ -30,12 +40,12 @@ try {
   const click = await fetch(new URL(`/r/${linkId}`, base), { redirect: "manual" });
   assert.equal(click.status, 302);
   assert.equal(click.headers.get("location"), "https://example.com/");
-  const events = await db.query('SELECT (SELECT count(*)::int FROM "PageView" WHERE "profileId" = $1) AS views, (SELECT count(DISTINCT "visitorHash")::int FROM "PageView" WHERE "profileId" = $1) AS visitors, (SELECT count(*)::int FROM "LinkClick" WHERE "linkId" = $2) AS clicks', [profileId, linkId]);
-  assert.ok(events.rows[0].views >= 2);
-  assert.equal(events.rows[0].visitors, 1);
-  assert.equal(events.rows[0].clicks, 1);
-  console.log("AuthKit redirects, protected dashboard, public views, unique visitors, and tracked click: passed");
+  const out = d1(`SELECT (SELECT count(*) FROM "PageView" WHERE "profileId" = '${profileId}') AS views, (SELECT count(DISTINCT "visitorHash") FROM "PageView" WHERE "profileId" = '${profileId}') AS visitors, (SELECT count(*) FROM "LinkClick" WHERE "linkId" = '${linkId}') AS clicks`);
+  const [counts] = JSON.parse(out.slice(out.indexOf("[")))[0].results;
+  assert.ok(counts.views >= 2);
+  assert.equal(counts.visitors, 1);
+  assert.equal(counts.clicks, 1);
+  console.log(`AuthKit redirects, protected dashboard, public views, unique visitors, tracked click: passed (${flag === "--local" ? "local D1" : "remote D1"})`);
 } finally {
-  await db.query('DELETE FROM "User" WHERE email = $1', [email]).catch(() => {});
-  await db.end();
+  d1(`DELETE FROM "User" WHERE email = '${email}'`);
 }

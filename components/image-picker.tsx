@@ -5,7 +5,8 @@ import Image from "next/image";
 import { ImagePlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createUpload, type ImageType } from "@/app/actions";
+import { uploadImage } from "@/app/actions";
+import type { ImageType } from "@/lib/avatar-storage";
 
 async function detectType(file: File): Promise<ImageType | null> {
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
@@ -43,10 +44,8 @@ export function ImagePicker({ id, name, label, existingImageUrl, error, kind }: 
         setUploading(true);
         setImagePath("");
         try {
-          const result = await createUpload(kind, type);
+          const result = await uploadImage(kind, file);
           if ("error" in result) throw new Error(result.error);
-          const response = await fetch(result.url, { method: "PUT", headers: { "content-type": type }, body: file });
-          if (!response.ok) throw new Error("Upload failed.");
           setImagePath(result.path);
         } catch (error) {
           setSelectionError(error instanceof Error ? error.message : "Image upload failed. Try again.");

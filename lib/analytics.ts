@@ -11,7 +11,7 @@ export async function stats(profileId: string, days: number | null) {
   const [views, clicks, visitors, perLink] = await Promise.all([
     db.pageView.count({ where: { profileId, createdAt: { gte: from } } }),
     db.linkClick.count({ where: { profileId, createdAt: { gte: from } } }),
-    db.$queryRaw<{ count: bigint }[]>`SELECT count(DISTINCT "visitorHash") AS count FROM "PageView" WHERE "profileId" = ${profileId}::uuid AND "createdAt" >= ${from}`.then(rows => Number(rows[0]?.count ?? 0)),
+    db.$queryRaw<{ count: bigint }[]>`SELECT count(DISTINCT "visitorHash") AS count FROM "PageView" WHERE "profileId" = ${profileId} AND "createdAt" >= ${from}`.then(rows => Number(rows[0]?.count ?? 0)),
     db.linkClick.groupBy({ by: ["linkId"], where: { profileId, createdAt: { gte: from } }, _count: true }),
   ]);
   return { views, clicks, visitors, perLink: new Map(perLink.map(row => [row.linkId, row._count])), ctr: views ? clicks / views * 100 : 0 };

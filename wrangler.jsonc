@@ -1,0 +1,39 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "linkbio",
+  "compatibility_date": "2026-09-24",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "main": "vinext/server/fetch-handler",
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "dist/client",
+    "not_found_handling": "none",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "NEXT_PUBLIC_APP_URL": "https://links.basilpot.com",
+    "NEXT_PUBLIC_WORKOS_REDIRECT_URI": "https://links.basilpot.com/auth/callback"
+  },
+  "d1_databases": [
+    {
+      "binding": "linkbio_db",
+      "database_name": "linkbio-db",
+      "database_id": "12c5ff81-602f-4873-bbff-2980062fee4e"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "linkbio_media",
+      "bucket_name": "linkbio-media"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "links.basilpot.com/*",
+      "zone_id": "cf00134b689a26c1ea15a68686e13a3f"
+    }
+  ]
+}

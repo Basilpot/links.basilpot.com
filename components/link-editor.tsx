@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Pencil, Plus } from "lucide-react";
+import { Plus, SquarePen } from "lucide-react";
 import type { Link as ProfileLink } from "@/generated/prisma/client";
 import { saveLink } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -58,8 +58,8 @@ export function LinkEditor({ link, existingImageUrl }: { link?: EditableLink; ex
   </form>;
 
   return <>
-    <Button type="button" variant={link ? "outline" : "default"} size={link ? "icon" : "default"} aria-label={link ? `Edit ${link.title}` : undefined} onClick={() => { setMessage(""); setOpen(true); }}>
-      {link ? <Pencil/> : <><Plus/> Add link</>}
+    <Button type="button" variant={link ? "ghost" : "default"} size={link ? "icon" : "default"} aria-label={link ? `Edit ${link.title}` : undefined} onClick={() => { setMessage(""); setOpen(true); }}>
+      {link ? <SquarePen/> : <><Plus/> Add link</>}
     </Button>
     {desktop ? <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>{form}</DialogContent>

@@ -1,27 +1,34 @@
 "use server";
 
 import { Prisma } from "@/generated/prisma/client";
-import { resolveTxt } from "node:dns/promises";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { isPro, socialPlatforms, socialUrl, themes, validUrl, validUsername } from "@/lib/core";
+import { socialPlatforms, socialUrl, themes, validUrl, validUsername } from "@/lib/core";
 import { domainToken } from "@/lib/domain";
-import { deleteImage, uploadUrl } from "@/lib/avatar-storage";
+import { deleteImage, imageTypes, putImage, type ImageType } from "@/lib/avatar-storage";
 import { currentProfile, currentUser } from "@/lib/session";
 import { signOut } from "@workos-inc/authkit-nextjs";
 
 export async function logout() { await signOut(); }
 
-const imageTypes = ["image/png", "image/jpeg", "image/webp"] as const;
-export type ImageType = typeof imageTypes[number];
+// ponytail: Workers have no node:dns; one TXT lookup via DoH, good enough for a one-shot domain check
+async function lookupTxt(name: string): Promise<string[][]> {
+  const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=TXT`, { headers: { accept: "application/dns-json" } });
+  if (!response.ok) return [];
+  const data = await response.json() as { Answer?: { data?: string; type?: number }[] };
+  return (data.Answer ?? []).filter(answer => answer.type === 16).map(answer => [answer.data ?? ""]);
+}
 
-export async function createUpload(kind: "link" | "avatar", type: ImageType): Promise<{ url: string; path: string } | { error: string }> {
+export async function uploadImage(kind: "link" | "avatar", file: File): Promise<{ path: string } | { error: string }> {
   const profile = await currentProfile();
-  if (!imageTypes.includes(type)) return { error: "Use PNG, JPEG, or WebP image." };
-  const ext = type === "image/png" ? "png" : type === "image/jpeg" ? "jpg" : "webp";
+  if (!(file.type in imageTypes)) return { error: "Use PNG, JPEG, or WebP image." };
+  if (file.size > 4 * 1024 * 1024) return { error: "Image must be under 4 MB." };
+  const type = file.type as ImageType;
+  const ext = imageTypes[type as keyof typeof imageTypes];
   const path = kind === "link" ? `links/${profile.id}/${crypto.randomUUID()}.${ext}` : `${profile.id}/${crypto.randomUUID()}.${ext}`;
-  return { url: await uploadUrl(path, type), path };
+  await putImage(path, type, file);
+  return { path };
 }
 
 export async function claim(_: string, form: FormData): Promise<string> {
@@ -50,7 +57,6 @@ export async function saveProfile(_: ProfileFormState, form: FormData): Promise<
   if (!displayName || displayName.length > 80) return invalid("displayName", "Name required (max 80 characters).");
   if (bio.length > 240) return invalid("bio", "Bio max 240 characters.");
   if (!themes.includes(theme as typeof themes[number])) return invalid("theme", "Invalid theme.");
-  if (!isPro(profile) && !["paper", "ink", "sand"].includes(theme)) return invalid("theme", "Upgrade to Pro for this theme.");
   const socials: Record<string, string> = {};
   for (const platform of socialPlatforms) {
     const raw = String(form.get(platform) ?? "").trim();
@@ -98,18 +104,12 @@ export async function saveLink(_: string, form: FormData): Promise<string> {
       const result = await db.link.updateMany({ where: { id, profileId: profile.id, deletedAt: null }, data });
       if (!result.count) throw new Error("Link not found.");
     } else {
-      await db.$transaction(async tx => {
-        const count = await tx.link.count({ where: { profileId: profile.id, deletedAt: null } });
-        if (!isPro(profile) && count >= 15) throw new Error("LIMIT");
-        const last = await tx.link.findFirst({ where: { profileId: profile.id, deletedAt: null }, orderBy: { position: "desc" } });
-        await tx.link.create({ data: { profileId: profile.id, title, description, url, enabled, imagePath, position: (last?.position ?? -1) + 1 } });
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      const last = await db.link.findFirst({ where: { profileId: profile.id, deletedAt: null }, orderBy: { position: "desc" } });
+      await db.link.create({ data: { profileId: profile.id, title, description, url, enabled, imagePath, position: (last?.position ?? -1) + 1 } });
     }
   } catch (error) {
     if (imagePath) await deleteImage(imagePath).catch(() => {});
-    if (error instanceof Error && error.message === "LIMIT") return "Free plan allows 15 links.";
     if (error instanceof Error && error.message === "Link not found.") return error.message;
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return "Links changed. Try again.";
     throw error;
   }
   if (previous?.imagePath && (imagePath || removeImage)) await deleteImage(previous.imagePath).catch(() => {});
@@ -132,18 +132,18 @@ export async function reorderLinks(ids: string[]) {
   const links = await db.link.findMany({ where: { profileId: profile.id, deletedAt: null }, select: { id: true } });
   const valid = new Set(links.map(link => link.id));
   if (ids.length !== links.length || new Set(ids).size !== ids.length || ids.some(id => !valid.has(id))) return;
-  await db.$transaction(ids.map((id, position) => db.link.update({ where: { id }, data: { position } })));
+  // ponytail: D1 has no transactions; sequential updates are fine for a drag-reorder
+  await Promise.all(ids.map((id, position) => db.link.update({ where: { id }, data: { position } })));
   revalidatePath("/dashboard"); revalidatePath(`/${profile.username}`);
 }
 
 export async function saveDomain(_: string, form: FormData): Promise<string> {
   const profile = await currentProfile();
-  if (!isPro(profile)) return "Upgrade to Pro to use a custom domain.";
   const customDomain = String(form.get("domain") ?? "").trim().toLowerCase() || null;
   if (customDomain && (!/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(customDomain))) return "Enter a valid domain.";
   if (customDomain) {
     const token = domainToken(profile.id, customDomain);
-    const records = await resolveTxt(`_linkbio.${customDomain}`).catch(() => []);
+    const records = await lookupTxt(`_linkbio.${customDomain}`).catch(() => []);
     if (!records.some(parts => parts.join("") === token)) return `Add TXT record _linkbio.${customDomain} with value ${token}, then retry.`;
   }
   try { await db.profile.update({ where: { id: profile.id }, data: { customDomain } }); }

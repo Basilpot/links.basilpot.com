@@ -4,7 +4,6 @@ import { ArrowRight } from "lucide-react";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { PublicProfile } from "@/components/public-profile";
-import { isPro } from "@/lib/core";
 import { recordView } from "@/lib/analytics";
 import CircularGallery from "@/components/CircularGallery";
 
@@ -20,7 +19,7 @@ export default async function Home() {
   const host = (await headers()).get("host")?.split(":")[0]?.toLowerCase();
   const appHost = new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").hostname;
   const profile = host && host !== appHost ? await db.profile.findUnique({ where: { customDomain: host }, include: { links: { where: { enabled: true, deletedAt: null }, orderBy: { position: "asc" } } } }) : null;
-  if (profile && isPro(profile)) {
+  if (profile) {
     await recordView(profile.id);
     return <PublicProfile profile={profile} />;
   }
