@@ -11,8 +11,8 @@ export function PublicProfile({ profile, example = false }: { profile: Profile &
   const socials = profile.socials && typeof profile.socials === "object" && !Array.isArray(profile.socials) ? profile.socials as Record<string, unknown> : {};
   const theme = ["paper", "ink", "sand", "sage", "lavender"].includes(profile.theme) ? profile.theme : "paper";
   return <main className={`profile-page min-h-screen ${styles[theme] ?? styles.paper}`}>
-    <section className="relative h-[42svh] min-h-64 max-h-[34rem] w-full overflow-hidden" aria-label="Profile image">
-      {profile.avatarPath ? <Image src={imageUrl(profile.avatarPath)} alt="" fill sizes="100vw" unoptimized className="object-cover" /> : <div aria-hidden="true" className="grid size-full place-items-center bg-[var(--link)] text-7xl font-semibold">{profile.displayName[0]?.toUpperCase()}</div>}
+    <section className="relative mx-auto h-[42svh] min-h-64 max-h-[34rem] w-full max-w-xl overflow-hidden" aria-label="Profile image">
+      {profile.avatarPath ? <Image src={imageUrl(profile.avatarPath)} alt="" fill sizes="(min-width: 576px) 576px, 100vw" unoptimized className="object-cover" /> : <div aria-hidden="true" className="grid size-full place-items-center bg-[var(--link)] text-7xl font-semibold">{profile.displayName[0]?.toUpperCase()}</div>}
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-b from-transparent via-transparent to-[var(--profile-bg)]" />
     </section>
     <div className="relative z-10 mx-auto -mt-16 flex max-w-md flex-col items-center px-5 pb-10 text-center">
