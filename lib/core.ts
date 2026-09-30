@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 export const reserved = new Set(["admin", "login", "signup", "dashboard", "settings", "api", "pricing", "about", "claim", "r", "avatar", "_next", "favicon.ico", "example"]);
 export const usernamePattern = /^[a-z0-9][a-z0-9_-]{2,29}$/;
 export const themes = ["paper", "ink", "sand", "sage", "lavender"] as const;
-export const socialPlatforms = ["instagram", "x", "github", "linkedin", "youtube", "facebook", "tiktok", "website", "email", "phone"] as const;
+export const socialPlatforms = ["phone", "email", "website", "instagram", "x", "github", "linkedin", "youtube", "facebook", "tiktok"] as const;
 export type SocialPlatform = typeof socialPlatforms[number];
 
 export function validUsername(value: string) {
