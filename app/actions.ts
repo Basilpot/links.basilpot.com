@@ -61,7 +61,8 @@ export async function saveProfile(_: ProfileFormState, form: FormData): Promise<
   for (const platform of socialPlatforms) {
     const raw = String(form.get(platform) ?? "").trim();
     if (!raw) continue;
-    const value = platform === "email" && !raw.startsWith("mailto:") ? `mailto:${raw}` : raw;
+    const scheme = platform === "email" ? "mailto:" : platform === "phone" ? "tel:" : "";
+    const value = scheme && !raw.startsWith(scheme) ? `${scheme}${raw}` : raw;
     if (!socialUrl(platform, value)) return invalid(platform, `Invalid ${platform} URL.`);
     socials[platform] = value;
   }

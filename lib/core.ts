@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 export const reserved = new Set(["admin", "login", "signup", "dashboard", "settings", "api", "pricing", "about", "claim", "r", "avatar", "_next", "favicon.ico", "example"]);
 export const usernamePattern = /^[a-z0-9][a-z0-9_-]{2,29}$/;
 export const themes = ["paper", "ink", "sand", "sage", "lavender"] as const;
-export const socialPlatforms = ["instagram", "x", "github", "linkedin", "youtube", "facebook", "tiktok", "website", "email"] as const;
+export const socialPlatforms = ["instagram", "x", "github", "linkedin", "youtube", "facebook", "tiktok", "website", "email", "phone"] as const;
 export type SocialPlatform = typeof socialPlatforms[number];
 
 export function validUsername(value: string) {
@@ -29,5 +29,6 @@ export async function visitorHash() {
 
 export function socialUrl(platform: SocialPlatform, value: string) {
   if (platform === "email") return /^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value : null;
+  if (platform === "phone") return /^tel:\+?[\d ().-]{4,40}$/.test(value) ? value : null;
   return validUrl(value) ? value : null;
 }
